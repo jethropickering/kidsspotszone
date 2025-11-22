@@ -1,10 +1,88 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { FiHome, FiTag, FiStar, FiUsers, FiTrendingUp, FiSettings, FiPlus } from 'react-icons/fi';
+import { FiHome, FiTag, FiStar, FiUsers, FiTrendingUp, FiSettings, FiPlus, FiEdit, FiEye } from 'react-icons/fi';
 import { useAuthStore } from '../../store/authStore';
+import { db, supabase } from '../../services/supabase';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import StarRating from '../../components/common/StarRating';
 
 export default function VenueOwnerDashboard() {
-  const { user, profile, signOut } = useAuthStore();
+  const { user, profile } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+  const [venues, setVenues] = useState([]);
+  const [stats, setStats] = useState({
+    totalVenues: 0,
+    activeOffers: 0,
+    totalReviews: 0,
+    totalFavorites: 0
+  });
+  const [recentReviews, setRecentReviews] = useState([]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [user]);
+
+  const loadDashboardData = async () => {
+    if (!user) return;
+
+    setLoading(true);
+
+    try {
+      // Load venues owned by this user
+      const { data: venuesData, error: venuesError } = await supabase
+        .from('venues')
+        .select(`
+          *,
+          reviews(rating, count),
+          offers(*, count)
+        `)
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (venuesError) throw venuesError;
+
+      setVenues(venuesData || []);
+
+      // Calculate stats
+      const totalOffers = venuesData?.reduce((sum, v) => sum + (v.offers?.length || 0), 0) || 0;
+      const totalReviews = venuesData?.reduce((sum, v) => sum + (v.reviews?.length || 0), 0) || 0;
+      const totalFavorites = venuesData?.reduce((sum, v) => sum + (v.favorite_count || 0), 0) || 0;
+
+      setStats({
+        totalVenues: venuesData?.length || 0,
+        activeOffers: totalOffers,
+        totalReviews: totalReviews,
+        totalFavorites: totalFavorites
+      });
+
+      // Load recent reviews for owned venues
+      if (venuesData && venuesData.length > 0) {
+        const venueIds = venuesData.map(v => v.id);
+        const { data: reviewsData } = await supabase
+          .from('reviews')
+          .select('*, venue:venues(name), user:profiles(full_name)')
+          .in('venue_id', venueIds)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        setRecentReviews(reviewsData || []);
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <>
@@ -31,22 +109,22 @@ export default function VenueOwnerDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div className="card text-center">
               <FiHome className="w-8 h-8 text-primary-500 mx-auto mb-2" />
-              <div className="text-2xl font-display font-bold text-gray-900">0</div>
+              <div className="text-2xl font-display font-bold text-gray-900">{stats.totalVenues}</div>
               <div className="text-sm text-gray-600">My Venues</div>
             </div>
             <div className="card text-center">
               <FiTag className="w-8 h-8 text-accent-500 mx-auto mb-2" />
-              <div className="text-2xl font-display font-bold text-gray-900">0</div>
+              <div className="text-2xl font-display font-bold text-gray-900">{stats.activeOffers}</div>
               <div className="text-sm text-gray-600">Active Offers</div>
             </div>
             <div className="card text-center">
               <FiStar className="w-8 h-8 text-primary-500 mx-auto mb-2" />
-              <div className="text-2xl font-display font-bold text-gray-900">0</div>
+              <div className="text-2xl font-display font-bold text-gray-900">{stats.totalReviews}</div>
               <div className="text-sm text-gray-600">Total Reviews</div>
             </div>
             <div className="card text-center">
               <FiUsers className="w-8 h-8 text-secondary-500 mx-auto mb-2" />
-              <div className="text-2xl font-display font-bold text-gray-900">0</div>
+              <div className="text-2xl font-display font-bold text-gray-900">{stats.totalFavorites}</div>
               <div className="text-sm text-gray-600">Favorites</div>
             </div>
           </div>
@@ -114,38 +192,118 @@ export default function VenueOwnerDashboard() {
                     Add Venue
                   </Link>
                 </div>
-                <div className="text-center py-12">
-                  <FiHome className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-display font-semibold mb-2">No venues yet</h3>
-                  <p className="text-gray-600 mb-6">
-                    Claim an existing venue or create a new listing to get started
-                  </p>
-                  <div className="flex gap-3 justify-center">
-                    <Link to="/search" className="btn-outline">
-                      Search for My Venue
-                    </Link>
-                    <Link to="/dashboard/venue/add" className="btn-primary">
-                      Create New Listing
-                    </Link>
+
+                {venues.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FiHome className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-display font-semibold mb-2">No venues yet</h3>
+                    <p className="text-gray-600 mb-6">
+                      Claim an existing venue or create a new listing to get started
+                    </p>
+                    <div className="flex gap-3 justify-center">
+                      <Link to="/search" className="btn-outline">
+                        Search for My Venue
+                      </Link>
+                      <Link to="/dashboard/venue/add" className="btn-primary">
+                        Create New Listing
+                      </Link>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-4">
+                    {venues.map(venue => (
+                      <div key={venue.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 mb-1">{venue.name}</h3>
+                            <p className="text-sm text-gray-600 mb-2">
+                              {venue.suburb}, {venue.state}
+                            </p>
+                            <div className="flex items-center gap-4 text-sm">
+                              <div className="flex items-center gap-1">
+                                <FiStar className="w-4 h-4 text-yellow-500" />
+                                <span>{venue.average_rating || 0} ({venue.review_count || 0} reviews)</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <FiUsers className="w-4 h-4 text-gray-500" />
+                                <span>{venue.favorite_count || 0} favorites</span>
+                              </div>
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                venue.status === 'published' ? 'bg-green-100 text-green-800' :
+                                venue.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {venue.status.charAt(0).toUpperCase() + venue.status.slice(1)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 ml-4">
+                            <Link
+                              to={`/venue/${venue.slug}`}
+                              target="_blank"
+                              className="btn-outline-sm flex items-center gap-1"
+                            >
+                              <FiEye className="w-4 h-4" />
+                              View
+                            </Link>
+                            <Link
+                              to={`/dashboard/venue/edit/${venue.slug}`}
+                              className="btn-primary-sm flex items-center gap-1"
+                            >
+                              <FiEdit className="w-4 h-4" />
+                              Edit
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Recent Reviews */}
               <div className="card">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-display font-bold">Recent Reviews</h2>
-                  <Link to="#" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                    View All →
-                  </Link>
+                  {recentReviews.length > 0 && (
+                    <Link to="#" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                      View All →
+                    </Link>
+                  )}
                 </div>
-                <div className="text-center py-12">
-                  <FiStar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-display font-semibold mb-2">No reviews yet</h3>
-                  <p className="text-gray-600">
-                    Reviews from parents will appear here once you have an active venue listing
-                  </p>
-                </div>
+
+                {recentReviews.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FiStar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-display font-semibold mb-2">No reviews yet</h3>
+                    <p className="text-gray-600">
+                      Reviews from parents will appear here once you have an active venue listing
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {recentReviews.map(review => (
+                      <div key={review.id} className="border-b border-gray-200 pb-4 last:border-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {review.user?.full_name || 'Anonymous'}
+                            </p>
+                            <p className="text-sm text-gray-500">{review.venue?.name}</p>
+                          </div>
+                          <div className="text-right">
+                            <StarRating rating={review.rating} size="sm" />
+                            <p className="text-xs text-gray-500 mt-1">{formatDate(review.created_at)}</p>
+                          </div>
+                        </div>
+                        {review.title && (
+                          <p className="font-medium text-gray-900 text-sm mb-1">{review.title}</p>
+                        )}
+                        <p className="text-sm text-gray-700 line-clamp-2">{review.comment}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

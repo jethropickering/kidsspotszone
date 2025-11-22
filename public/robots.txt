@@ -1,0 +1,18 @@
+# Robots.txt for Kids Sports Zone
+# https://kidsspotszone.com.au/robots.txt
+
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://kidsspotszone.com.au/sitemap.xml
+
+# Disallow admin and dashboard pages
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /signin
+Disallow: /signup
+Disallow: /forgot-password
+
+# Crawl-delay for polite crawlers
+Crawl-delay: 1

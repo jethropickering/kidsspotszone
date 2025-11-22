@@ -11,6 +11,7 @@ import HomePage from './pages/home/HomePage';
 import SearchPage from './pages/search/SearchPage';
 import VenuePage from './pages/venue/VenuePage';
 import AddVenuePage from './pages/venue/AddVenuePage';
+import EditVenuePage from './pages/venue/EditVenuePage';
 import CategoryPage from './pages/category/CategoryPage';
 import CityPage from './pages/location/CityPage';
 import StatePage from './pages/location/StatePage';
@@ -79,6 +80,7 @@ function App() {
             <Route index element={<ParentDashboard />} />
             <Route path="venue" element={<VenueOwnerDashboard />} />
             <Route path="venue/add" element={<AddVenuePage />} />
+            <Route path="venue/edit/:slug" element={<EditVenuePage />} />
             <Route path="admin" element={<AdminDashboard />} />
             <Route path="admin/approvals" element={<VenueApprovalsPage />} />
           </Route>
