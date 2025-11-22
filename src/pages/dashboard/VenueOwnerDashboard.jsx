@@ -9,7 +9,7 @@ import StarRating from '../../components/common/StarRating';
 import OfferForm from '../../components/offers/OfferForm';
 
 export default function VenueOwnerDashboard() {
-  const { user, profile, loading: authLoading } = useAuthStore();
+  const { user, profile, loading: authLoading, signOut } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [venues, setVenues] = useState([]);
   const [stats, setStats] = useState({
@@ -44,11 +44,7 @@ export default function VenueOwnerDashboard() {
       // Load venues owned by this user
       const { data: venuesData, error: venuesError } = await supabase
         .from('venues')
-        .select(`
-          *,
-          reviews(rating, count),
-          offers(*, count)
-        `)
+        .select('*')
         .eq('owner_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -56,9 +52,27 @@ export default function VenueOwnerDashboard() {
 
       setVenues(venuesData || []);
 
-      // Calculate stats
-      const totalOffers = venuesData?.reduce((sum, v) => sum + (v.offers?.length || 0), 0) || 0;
-      const totalReviews = venuesData?.reduce((sum, v) => sum + (v.reviews?.length || 0), 0) || 0;
+      // Load offers and reviews separately to calculate stats
+      let totalOffers = 0;
+      let totalReviews = 0;
+
+      if (venuesData && venuesData.length > 0) {
+        const venueIds = venuesData.map(v => v.id);
+
+        const { data: offersData } = await supabase
+          .from('offers')
+          .select('id')
+          .in('venue_id', venueIds);
+
+        const { data: reviewsData } = await supabase
+          .from('reviews')
+          .select('id')
+          .in('venue_id', venueIds);
+
+        totalOffers = offersData?.length || 0;
+        totalReviews = reviewsData?.length || 0;
+      }
+
       const totalFavorites = venuesData?.reduce((sum, v) => sum + (v.favorite_count || 0), 0) || 0;
 
       setStats({
