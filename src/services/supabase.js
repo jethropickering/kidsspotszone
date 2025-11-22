@@ -322,5 +322,114 @@ export const db = {
       .single();
 
     return { data, error };
+  },
+
+  // Photos
+  uploadVenuePhoto: async (venueId, file, options = {}) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `venues/${venueId}/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('venue-photos')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        ...options
+      });
+
+    if (error) return { data: null, error };
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('venue-photos')
+      .getPublicUrl(filePath);
+
+    return { data: { path: filePath, url: publicUrl }, error: null };
+  },
+
+  deleteVenuePhoto: async (path) => {
+    const { data, error } = await supabase.storage
+      .from('venue-photos')
+      .remove([path]);
+
+    return { data, error };
+  },
+
+  saveVenuePhotos: async (venueId, photos) => {
+    // Delete existing photos for this venue
+    const { error: deleteError } = await supabase
+      .from('venue_photos')
+      .delete()
+      .eq('venue_id', venueId);
+
+    if (deleteError) return { data: null, error: deleteError };
+
+    // Insert new photos
+    const photoRecords = photos.map((photo, index) => ({
+      venue_id: venueId,
+      url: photo.url,
+      path: photo.path,
+      caption: photo.caption || null,
+      display_order: photo.display_order !== undefined ? photo.display_order : index,
+      is_featured: index === 0
+    }));
+
+    const { data, error } = await supabase
+      .from('venue_photos')
+      .insert(photoRecords)
+      .select();
+
+    return { data, error };
+  },
+
+  getVenuePhotos: async (venueId) => {
+    const { data, error } = await supabase
+      .from('venue_photos')
+      .select('*')
+      .eq('venue_id', venueId)
+      .order('display_order', { ascending: true });
+
+    return { data, error };
+  },
+
+  // Admin - Venue Management
+  getVenuesByStatus: async (status = 'pending') => {
+    const { data, error } = await supabase
+      .from('venues')
+      .select(`
+        *,
+        categories:venue_categories(category:categories(*))
+      `)
+      .eq('status', status)
+      .order('created_at', { ascending: false });
+
+    return { data, error };
+  },
+
+  getAllVenues: async () => {
+    const { data, error } = await supabase
+      .from('venues')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    return { data, error };
+  },
+
+  getVenueStats: async () => {
+    // Get venue counts by status
+    const { data: venues, error } = await supabase
+      .from('venues')
+      .select('status');
+
+    if (error) return { data: null, error };
+
+    const stats = {
+      total: venues.length,
+      pending: venues.filter(v => v.status === 'pending').length,
+      published: venues.filter(v => v.status === 'published').length,
+      rejected: venues.filter(v => v.status === 'rejected').length,
+    };
+
+    return { data: stats, error: null };
   }
 };

@@ -25,6 +25,7 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import ParentDashboard from './pages/dashboard/ParentDashboard';
 import VenueOwnerDashboard from './pages/dashboard/VenueOwnerDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
+import VenueApprovalsPage from './pages/admin/VenueApprovalsPage';
 
 // Legal pages
 import PrivacyPage from './pages/legal/PrivacyPage';
@@ -79,6 +80,7 @@ function App() {
             <Route path="venue" element={<VenueOwnerDashboard />} />
             <Route path="venue/add" element={<AddVenuePage />} />
             <Route path="admin" element={<AdminDashboard />} />
+            <Route path="admin/approvals" element={<VenueApprovalsPage />} />
           </Route>
         </Routes>
 

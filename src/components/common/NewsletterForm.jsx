@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FiMail, FiCheck } from 'react-icons/fi';
 import { db } from '../../services/supabase';
+import { emailService } from '../../services/emailService';
 import { isValidEmail } from '../../utils/helpers';
 
 export default function NewsletterForm({ inline = false }) {
@@ -20,22 +21,33 @@ export default function NewsletterForm({ inline = false }) {
 
     setLoading(true);
 
-    const { error: submitError } = await db.subscribeNewsletter(email);
+    try {
+      // Save to database
+      const { error: submitError } = await db.subscribeNewsletter(email);
 
-    if (submitError) {
-      if (submitError.code === '23505') {
-        setError('This email is already subscribed');
-      } else {
-        setError('Something went wrong. Please try again.');
+      if (submitError) {
+        if (submitError.code === '23505') {
+          setError('This email is already subscribed');
+        } else {
+          throw submitError;
+        }
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-    } else {
+
+      // Send welcome email
+      await emailService.sendNewsletterWelcome(email);
+
       setSuccess(true);
       setEmail('');
       setLoading(false);
 
       // Reset success message after 5 seconds
       setTimeout(() => setSuccess(false), 5000);
+    } catch (err) {
+      console.error('Newsletter subscription error:', err);
+      setError('Something went wrong. Please try again.');
+      setLoading(false);
     }
   };
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { FaEnvelope, FaQuestionCircle, FaBuilding, FaComments } from 'react-icons/fa';
+import { emailService } from '../../services/emailService';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -11,6 +12,7 @@ export default function ContactPage() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     setFormData({
@@ -22,13 +24,23 @@ export default function ContactPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
-    // TODO: Integrate with email service (e.g., SendGrid, AWS SES, or Supabase Edge Function)
-    // For now, just simulate submission
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Send email via Supabase Edge Function
+      const { error: emailError } = await emailService.sendContactForm(formData);
 
-    setSubmitted(true);
-    setLoading(false);
+      if (emailError) {
+        throw emailError;
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      console.error('Contact form error:', err);
+      setError('Failed to send message. Please try again or email us directly at hello@kidssportszone.com.au');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -207,6 +219,12 @@ export default function ContactPage() {
                     {formData.message.length} / 1000 characters
                   </p>
                 </div>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
 
                 <button
                   type="submit"

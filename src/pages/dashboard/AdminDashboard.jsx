@@ -43,17 +43,31 @@ export default function AdminDashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
 
-    // TODO: Implement actual data loading from Supabase
-    // For now, using mock data
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      // Get venue stats
+      const { data: venueStats, error: statsError } = await db.getVenueStats();
 
-    setStats({
-      totalUsers: 1247,
-      totalVenues: 342,
-      totalReviews: 2156,
-      pendingClaims: 8,
-      reportedIssues: 12
-    });
+      if (statsError) throw statsError;
+
+      setStats({
+        totalUsers: 0, // TODO: Implement user count
+        totalVenues: venueStats?.total || 0,
+        totalReviews: 0, // TODO: Implement review count
+        pendingVenues: venueStats?.pending || 0,
+        pendingClaims: 0, // TODO: Implement claims count
+        reportedIssues: 0 // TODO: Implement issues count
+      });
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      setStats({
+        totalUsers: 0,
+        totalVenues: 0,
+        totalReviews: 0,
+        pendingVenues: 0,
+        pendingClaims: 0,
+        reportedIssues: 0
+      });
+    }
 
     setPendingClaims([
       {
@@ -162,18 +176,21 @@ export default function AdminDashboard() {
             <div className="text-sm text-gray-600">Reviews</div>
           </div>
 
-          <div className="card bg-yellow-50 border-yellow-200">
+          <Link
+            to="/admin/approvals"
+            className="card bg-yellow-50 border-yellow-200 hover:shadow-lg transition-shadow cursor-pointer"
+          >
             <div className="flex items-center justify-between mb-2">
               <div className="text-2xl text-yellow-600">
                 <FaClock />
               </div>
-              <span className="text-xs text-yellow-600">Action Needed</span>
+              <span className="text-xs text-yellow-600">Review Now →</span>
             </div>
             <div className="text-3xl font-bold text-yellow-800 mb-1">
-              {stats.pendingClaims}
+              {stats.pendingVenues}
             </div>
-            <div className="text-sm text-yellow-700">Pending Claims</div>
-          </div>
+            <div className="text-sm text-yellow-700">Pending Venues</div>
+          </Link>
 
           <div className="card bg-red-50 border-red-200">
             <div className="flex items-center justify-between mb-2">

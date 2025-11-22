@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
-import { FiHome, FiMapPin, FiPhone, FiMail, FiGlobe, FiClock, FiDollarSign, FiUsers, FiImage, FiCheckCircle } from 'react-icons/fi';
+import { FiHome, FiMapPin, FiPhone, FiMail, FiGlobe, FiClock, FiDollarSign, FiUsers, FiImage, FiCheckCircle, FiLoader } from 'react-icons/fi';
 import { useAuthStore } from '../../store/authStore';
 import { db } from '../../services/supabase';
+import { geocodingService } from '../../services/geocodingService';
 import { categories } from '../../data/categories';
 import { states, getCitiesByState } from '../../data/locations';
+import PhotoUpload from '../../components/venue/PhotoUpload';
 
 export default function AddVenuePage() {
-  const { user, profile } = useAuthStore();
+  const { user, profile} = useAuthStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState('');
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState(1);
@@ -60,7 +64,10 @@ export default function AddVenuePage() {
       equipment_provided: false,
       disability_access: false,
       air_conditioning: false
-    }
+    },
+
+    // Photos
+    photos: []
   });
 
   const cities = formData.state_id ? getCitiesByState(formData.state_id) : [];
@@ -147,6 +154,40 @@ export default function AddVenuePage() {
     window.scrollTo(0, 0);
   };
 
+  const handleGeocodeAddress = async () => {
+    setGeocoding(true);
+    setGeocodeError('');
+
+    try {
+      const fullAddress = `${formData.address}, ${formData.suburb || ''}, ${formData.state_id} ${formData.postcode}, Australia`;
+
+      const result = await geocodingService.geocodeAddress(fullAddress, {
+        city: formData.suburb,
+        state: formData.state_id,
+        country: 'Australia',
+      });
+
+      if (result.error) {
+        setGeocodeError('Could not find this address. Please check the address details and try again.');
+        return;
+      }
+
+      // Update formData with coordinates
+      setFormData(prev => ({
+        ...prev,
+        latitude: result.latitude,
+        longitude: result.longitude,
+      }));
+
+      setGeocodeError('');
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      setGeocodeError('Failed to geocode address. You can continue anyway.');
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -181,6 +222,16 @@ export default function AddVenuePage() {
       const { data, error: createError } = await db.createVenue(venueData);
 
       if (createError) throw createError;
+
+      // Save photos if any were uploaded
+      if (formData.photos.length > 0 && data.id) {
+        const { error: photoError } = await db.saveVenuePhotos(data.id, formData.photos);
+
+        if (photoError) {
+          console.error('Error saving photos:', photoError);
+          // Don't fail the entire submission if photos fail
+        }
+      }
 
       setSuccess(true);
 
@@ -250,7 +301,7 @@ export default function AddVenuePage() {
         <div className="bg-white border-b border-gray-200 py-4">
           <div className="section-container">
             <div className="flex items-center justify-center gap-2">
-              {[1, 2, 3, 4, 5].map((s) => (
+              {[1, 2, 3, 4, 5, 6].map((s) => (
                 <div key={s} className="flex items-center">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
@@ -263,7 +314,7 @@ export default function AddVenuePage() {
                   >
                     {s}
                   </div>
-                  {s < 5 && (
+                  {s < 6 && (
                     <div
                       className={`w-12 h-1 ${
                         s < step ? 'bg-green-500' : 'bg-gray-200'
@@ -274,11 +325,12 @@ export default function AddVenuePage() {
               ))}
             </div>
             <div className="text-center mt-2 text-sm text-gray-600">
-              Step {step} of 5: {
+              Step {step} of 6: {
                 step === 1 ? 'Basic Information' :
                 step === 2 ? 'Location Details' :
                 step === 3 ? 'Contact Information' :
                 step === 4 ? 'Venue Details' :
+                step === 5 ? 'Photos' :
                 'Review & Submit'
               }
             </div>
@@ -471,11 +523,54 @@ export default function AddVenuePage() {
                       />
                     </div>
 
+                    {/* Geocoding Section */}
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p className="text-sm text-blue-800">
-                        <strong>Note:</strong> We'll automatically geocode your address to show your venue on maps.
-                        You can update the exact location later if needed.
-                      </p>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-blue-900 mb-1">
+                            📍 Geocode Your Address
+                          </p>
+                          <p className="text-xs text-blue-700">
+                            Click the button to find your venue's exact location on the map.
+                            This helps parents find you easily!
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleGeocodeAddress}
+                          disabled={!formData.address || !formData.postcode || geocoding}
+                          className="btn-secondary whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {geocoding ? (
+                            <>
+                              <FiLoader className="animate-spin" />
+                              Finding...
+                            </>
+                          ) : (
+                            <>
+                              <FiMapPin />
+                              Find Location
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Geocoding Status */}
+                      {formData.latitude && formData.longitude && !geocodeError && (
+                        <div className="mt-3 bg-green-100 border border-green-300 rounded px-3 py-2 flex items-center gap-2">
+                          <FiCheckCircle className="text-green-600" />
+                          <span className="text-xs text-green-800">
+                            ✓ Location found: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Geocoding Error */}
+                      {geocodeError && (
+                        <div className="mt-3 bg-yellow-100 border border-yellow-300 rounded px-3 py-2">
+                          <p className="text-xs text-yellow-800">{geocodeError}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -698,8 +793,44 @@ export default function AddVenuePage() {
                 </div>
               )}
 
-              {/* Step 5: Review & Submit */}
+              {/* Step 5: Photos */}
               {step === 5 && (
+                <div className="card">
+                  <div className="flex items-center gap-3 mb-6">
+                    <FiImage className="text-2xl text-primary-500" />
+                    <h2 className="text-2xl font-display font-bold">Venue Photos</h2>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                      <h3 className="font-semibold mb-2 text-blue-900">Why photos matter</h3>
+                      <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                        <li>Venues with photos get 60% more clicks</li>
+                        <li>High-quality photos build trust with parents</li>
+                        <li>Show your facilities, equipment, and atmosphere</li>
+                        <li>The first photo will be your featured image</li>
+                      </ul>
+                    </div>
+
+                    <PhotoUpload
+                      venueId={null}
+                      existingPhotos={formData.photos}
+                      onPhotosChange={(photos) => setFormData(prev => ({ ...prev, photos }))}
+                      maxPhotos={10}
+                    />
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-sm text-yellow-800">
+                        <strong>Optional:</strong> You can skip this step and add photos later from your dashboard.
+                        However, we highly recommend adding at least 3-5 photos before submitting.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 6: Review & Submit */}
+              {step === 6 && (
                 <div className="card">
                   <div className="flex items-center gap-3 mb-6">
                     <FiCheckCircle className="text-2xl text-primary-500" />
@@ -751,6 +882,38 @@ export default function AddVenuePage() {
                           <p><strong>Price Range:</strong> {formData.price_range}</p>
                         </div>
                       </div>
+
+                      <div className="border-b pb-4">
+                        <h3 className="font-semibold mb-2">Photos</h3>
+                        <div className="text-sm">
+                          {formData.photos.length > 0 ? (
+                            <>
+                              <p className="mb-2"><strong>{formData.photos.length}</strong> photo{formData.photos.length !== 1 ? 's' : ''} uploaded</p>
+                              <div className="grid grid-cols-4 gap-2">
+                                {formData.photos.slice(0, 4).map((photo, index) => (
+                                  <div key={index} className="relative aspect-square rounded overflow-hidden border border-gray-200">
+                                    <img
+                                      src={photo.url}
+                                      alt={photo.caption || `Photo ${index + 1}`}
+                                      className="w-full h-full object-cover"
+                                    />
+                                    {index === 0 && (
+                                      <div className="absolute top-1 left-1 bg-primary-500 text-white text-xs px-1 rounded">
+                                        Featured
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                              {formData.photos.length > 4 && (
+                                <p className="text-xs text-gray-500 mt-1">+{formData.photos.length - 4} more</p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-gray-500 italic">No photos uploaded (can add later)</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -760,7 +923,7 @@ export default function AddVenuePage() {
                         <li>We'll verify your information within 24-48 hours</li>
                         <li>You'll receive an email notification when it's approved</li>
                         <li>Once approved, your venue will be live and searchable</li>
-                        <li>You can add photos and offers from your dashboard</li>
+                        <li>You can manage your venue and create special offers from your dashboard</li>
                       </ol>
                     </div>
                   </div>
@@ -781,7 +944,7 @@ export default function AddVenuePage() {
                 )}
 
                 <div className="ml-auto">
-                  {step < 5 ? (
+                  {step < 6 ? (
                     <button
                       type="button"
                       onClick={handleNextStep}
