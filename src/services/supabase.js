@@ -198,6 +198,36 @@ export const db = {
     return { data, error };
   },
 
+  getVenueOffers: async (venueId) => {
+    const { data, error } = await supabase
+      .from('offers')
+      .select('*')
+      .eq('venue_id', venueId)
+      .order('created_at', { ascending: false });
+
+    return { data, error };
+  },
+
+  updateOffer: async (offerId, offerData) => {
+    const { data, error } = await supabase
+      .from('offers')
+      .update(offerData)
+      .eq('id', offerId)
+      .select()
+      .single();
+
+    return { data, error };
+  },
+
+  deleteOffer: async (offerId) => {
+    const { data, error } = await supabase
+      .from('offers')
+      .delete()
+      .eq('id', offerId);
+
+    return { data, error };
+  },
+
   // Favorites
   toggleFavorite: async (userId, venueId) => {
     // Check if favorite exists
@@ -229,11 +259,30 @@ export const db = {
   getUserFavorites: async (userId) => {
     const { data, error } = await supabase
       .from('favorites')
-      .select('*, venue:venues(*)')
+      .select(`
+        *,
+        venue:venues(
+          *,
+          categories:venue_categories(category:categories(*)),
+          offers(*, count),
+          reviews(rating, count)
+        )
+      `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     return { data, error };
+  },
+
+  isFavorited: async (userId, venueId) => {
+    const { data, error } = await supabase
+      .from('favorites')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('venue_id', venueId)
+      .single();
+
+    return { isFavorited: !!data, error: error?.code === 'PGRST116' ? null : error };
   },
 
   // Location pages (SEO content)

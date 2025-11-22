@@ -17,7 +17,10 @@ export const useSearchStore = create((set, get) => ({
     ageMax: null,
     indoor: null,
     priceRange: null,
-    search: ''
+    search: '',
+    facilities: [],
+    openNow: false,
+    hasOffers: false
   },
 
   // Location state
@@ -48,7 +51,10 @@ export const useSearchStore = create((set, get) => ({
         ageMax: null,
         indoor: null,
         priceRange: null,
-        search: ''
+        search: '',
+        facilities: [],
+        openNow: false,
+        hasOffers: false
       },
       currentPage: 1
     });
@@ -101,7 +107,51 @@ export const useSearchStore = create((set, get) => ({
 
       if (error) throw error;
 
-      set({ venues: data || [], loading: false });
+      // Apply client-side filters
+      let filteredVenues = data || [];
+
+      // Filter by facilities
+      if (filters.facilities && filters.facilities.length > 0) {
+        filteredVenues = filteredVenues.filter(venue => {
+          if (!venue.facilities) return false;
+          return filters.facilities.every(facility =>
+            venue.facilities.includes(facility)
+          );
+        });
+      }
+
+      // Filter by "Open Now"
+      if (filters.openNow) {
+        const now = new Date();
+        const currentDay = now.toLocaleDateString('en-US', { weekday: 'lowercase' });
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+
+        filteredVenues = filteredVenues.filter(venue => {
+          if (!venue.opening_hours || !venue.opening_hours[currentDay]) return false;
+          const hours = venue.opening_hours[currentDay];
+          if (hours.closed) return false;
+
+          const [openHour, openMin] = hours.open.split(':').map(Number);
+          const [closeHour, closeMin] = hours.close.split(':').map(Number);
+          const openTime = openHour * 60 + openMin;
+          const closeTime = closeHour * 60 + closeMin;
+
+          return currentTime >= openTime && currentTime <= closeTime;
+        });
+      }
+
+      // Filter by "Has Offers"
+      if (filters.hasOffers) {
+        const now = new Date().toISOString();
+        filteredVenues = filteredVenues.filter(venue => {
+          if (!venue.offers || venue.offers.length === 0) return false;
+          return venue.offers.some(offer =>
+            offer.is_active && offer.expires_at > now
+          );
+        });
+      }
+
+      set({ venues: filteredVenues, loading: false });
     } catch (error) {
       console.error('Error searching venues:', error);
       set({ loading: false, error: error.message });

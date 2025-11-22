@@ -301,6 +301,70 @@ export default function SearchPage() {
                       <option value="3">$$$ - Premium</option>
                     </select>
                   </div>
+
+                  {/* Facilities */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Facilities
+                    </label>
+                    <div className="space-y-2">
+                      {[
+                        { value: 'parking', label: '🅿️ Parking Available' },
+                        { value: 'disability_access', label: '♿ Wheelchair Access' },
+                        { value: 'changing_rooms', label: '🚿 Changing Rooms' },
+                        { value: 'cafe', label: '☕ Café/Canteen' },
+                        { value: 'equipment_provided', label: '🎽 Equipment Provided' },
+                        { value: 'wifi', label: '📶 WiFi Available' }
+                      ].map(facility => (
+                        <label key={facility.value} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={filters.facilities?.includes(facility.value) || false}
+                            onChange={(e) => {
+                              const currentFacilities = filters.facilities || [];
+                              if (e.target.checked) {
+                                setFilter('facilities', [...currentFacilities, facility.value]);
+                              } else {
+                                setFilter('facilities', currentFacilities.filter(f => f !== facility.value));
+                              }
+                            }}
+                            className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                          />
+                          <span className="text-sm text-gray-700">{facility.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Open Now */}
+                  <div className="mb-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filters.openNow || false}
+                        onChange={(e) => setFilter('openNow', e.target.checked)}
+                        className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        🕐 Open Now
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* With Offers */}
+                  <div className="mb-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filters.hasOffers || false}
+                        onChange={(e) => setFilter('hasOffers', e.target.checked)}
+                        className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        🎁 Special Offers Available
+                      </span>
+                    </label>
+                  </div>
                 </div>
               </aside>
             )}

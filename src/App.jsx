@@ -27,6 +27,7 @@ import ParentDashboard from './pages/dashboard/ParentDashboard';
 import VenueOwnerDashboard from './pages/dashboard/VenueOwnerDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import VenueApprovalsPage from './pages/admin/VenueApprovalsPage';
+import FavoritesPage from './pages/dashboard/FavoritesPage';
 
 // Legal pages
 import PrivacyPage from './pages/legal/PrivacyPage';
@@ -78,6 +79,7 @@ function App() {
           {/* Dashboard routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<ParentDashboard />} />
+            <Route path="favorites" element={<FavoritesPage />} />
             <Route path="venue" element={<VenueOwnerDashboard />} />
             <Route path="venue/add" element={<AddVenuePage />} />
             <Route path="venue/edit/:slug" element={<EditVenuePage />} />

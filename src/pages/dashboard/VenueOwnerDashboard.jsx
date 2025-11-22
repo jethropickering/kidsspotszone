@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { FiHome, FiTag, FiStar, FiUsers, FiTrendingUp, FiSettings, FiPlus, FiEdit, FiEye } from 'react-icons/fi';
+import { FiHome, FiTag, FiStar, FiUsers, FiTrendingUp, FiSettings, FiPlus, FiEdit, FiEye, FiTrash2, FiCalendar } from 'react-icons/fi';
 import { useAuthStore } from '../../store/authStore';
 import { db, supabase } from '../../services/supabase';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import StarRating from '../../components/common/StarRating';
+import OfferForm from '../../components/offers/OfferForm';
 
 export default function VenueOwnerDashboard() {
   const { user, profile } = useAuthStore();
@@ -18,6 +19,10 @@ export default function VenueOwnerDashboard() {
     totalFavorites: 0
   });
   const [recentReviews, setRecentReviews] = useState([]);
+  const [allOffers, setAllOffers] = useState([]);
+  const [showOfferForm, setShowOfferForm] = useState(false);
+  const [selectedVenueForOffer, setSelectedVenueForOffer] = useState(null);
+  const [editingOffer, setEditingOffer] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -59,6 +64,7 @@ export default function VenueOwnerDashboard() {
       // Load recent reviews for owned venues
       if (venuesData && venuesData.length > 0) {
         const venueIds = venuesData.map(v => v.id);
+
         const { data: reviewsData } = await supabase
           .from('reviews')
           .select('*, venue:venues(name), user:profiles(full_name)')
@@ -67,6 +73,15 @@ export default function VenueOwnerDashboard() {
           .limit(5);
 
         setRecentReviews(reviewsData || []);
+
+        // Load all offers for owned venues
+        const { data: offersData } = await supabase
+          .from('offers')
+          .select('*, venue:venues(name, slug)')
+          .in('venue_id', venueIds)
+          .order('created_at', { ascending: false });
+
+        setAllOffers(offersData || []);
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -78,6 +93,40 @@ export default function VenueOwnerDashboard() {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const handleCreateOffer = (venue) => {
+    setSelectedVenueForOffer(venue);
+    setEditingOffer(null);
+    setShowOfferForm(true);
+  };
+
+  const handleEditOffer = (offer) => {
+    setEditingOffer(offer);
+    setSelectedVenueForOffer(venues.find(v => v.id === offer.venue_id));
+    setShowOfferForm(true);
+  };
+
+  const handleDeleteOffer = async (offerId) => {
+    if (!confirm('Are you sure you want to delete this offer?')) return;
+
+    try {
+      const { error } = await db.deleteOffer(offerId);
+      if (error) throw error;
+
+      setAllOffers(allOffers.filter(o => o.id !== offerId));
+      alert('Offer deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting offer:', error);
+      alert('Failed to delete offer. Please try again.');
+    }
+  };
+
+  const handleOfferFormSuccess = () => {
+    setShowOfferForm(false);
+    setSelectedVenueForOffer(null);
+    setEditingOffer(null);
+    loadDashboardData(); // Reload data
   };
 
   if (loading) {
@@ -261,6 +310,124 @@ export default function VenueOwnerDashboard() {
                 )}
               </div>
 
+              {/* My Offers */}
+              <div className="card">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-display font-bold">My Offers</h2>
+                  {venues.length > 0 && (
+                    <button
+                      onClick={() => handleCreateOffer(venues[0])}
+                      className="btn-primary flex items-center gap-2"
+                    >
+                      <FiPlus className="w-4 h-4" />
+                      Create Offer
+                    </button>
+                  )}
+                </div>
+
+                {showOfferForm && selectedVenueForOffer && (
+                  <div className="mb-6 p-6 bg-warm-50 border-2 border-primary-200 rounded-lg">
+                    <OfferForm
+                      venueId={selectedVenueForOffer.id}
+                      offer={editingOffer}
+                      onSuccess={handleOfferFormSuccess}
+                      onCancel={() => {
+                        setShowOfferForm(false);
+                        setEditingOffer(null);
+                      }}
+                    />
+                  </div>
+                )}
+
+                {allOffers.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FiTag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-display font-semibold mb-2">No offers yet</h3>
+                    <p className="text-gray-600 mb-6">
+                      Create special offers to attract more families to your venue
+                    </p>
+                    {venues.length > 0 ? (
+                      <button
+                        onClick={() => handleCreateOffer(venues[0])}
+                        className="btn-primary"
+                      >
+                        Create Your First Offer
+                      </button>
+                    ) : (
+                      <p className="text-sm text-gray-500">Add a venue first to create offers</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {allOffers.map(offer => {
+                      const isExpired = new Date(offer.expires_at) < new Date();
+                      const isActive = offer.is_active && !isExpired;
+
+                      return (
+                        <div
+                          key={offer.id}
+                          className={`border rounded-lg p-4 ${
+                            isActive ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-gray-900">{offer.title}</h3>
+                                {isActive ? (
+                                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">
+                                    Active
+                                  </span>
+                                ) : isExpired ? (
+                                  <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded">
+                                    Expired
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded">
+                                    Inactive
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 mb-2">{offer.venue?.name}</p>
+                              {offer.description && (
+                                <p className="text-sm text-gray-700 mb-2">{offer.description}</p>
+                              )}
+                              <div className="flex items-center gap-4 text-xs text-gray-500">
+                                <div className="flex items-center gap-1">
+                                  <FiCalendar className="w-3 h-3" />
+                                  <span>Expires: {formatDate(offer.expires_at)}</span>
+                                </div>
+                                {offer.discount_text && (
+                                  <div className="font-semibold text-green-700">
+                                    {offer.discount_text}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2 ml-4">
+                              <button
+                                onClick={() => handleEditOffer(offer)}
+                                className="btn-outline-sm flex items-center gap-1"
+                              >
+                                <FiEdit className="w-4 h-4" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteOffer(offer.id)}
+                                className="btn-outline-sm flex items-center gap-1 text-red-600 hover:bg-red-50"
+                              >
+                                <FiTrash2 className="w-4 h-4" />
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* Recent Reviews */}
               <div className="card">
                 <div className="flex justify-between items-center mb-6">
@@ -313,7 +480,11 @@ export default function VenueOwnerDashboard() {
               <div className="card">
                 <h3 className="font-display font-semibold text-lg mb-4">Quick Actions</h3>
                 <div className="space-y-3">
-                  <button className="flex items-center gap-3 p-3 hover:bg-warm-50 rounded-lg transition-colors w-full text-left">
+                  <button
+                    onClick={() => venues.length > 0 && handleCreateOffer(venues[0])}
+                    disabled={venues.length === 0}
+                    className="flex items-center gap-3 p-3 hover:bg-warm-50 rounded-lg transition-colors w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <FiPlus className="w-5 h-5 text-primary-500" />
                     <span className="text-gray-700">Create Offer</span>
                   </button>

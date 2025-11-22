@@ -58,8 +58,8 @@ export default function ParentDashboard() {
               <div className="card">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-display font-bold">My Favorites</h2>
-                  <Link to="/search" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                    Browse Activities →
+                  <Link to="/dashboard/favorites" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                    View All →
                   </Link>
                 </div>
                 <div className="text-center py-12">
@@ -118,6 +118,10 @@ export default function ParentDashboard() {
               <div className="card">
                 <h3 className="font-display font-semibold text-lg mb-4">Quick Actions</h3>
                 <div className="space-y-3">
+                  <Link to="/dashboard/favorites" className="flex items-center gap-3 p-3 hover:bg-warm-50 rounded-lg transition-colors">
+                    <FiHeart className="w-5 h-5 text-red-500" />
+                    <span className="text-gray-700">My Favorites</span>
+                  </Link>
                   <Link to="/search" className="flex items-center gap-3 p-3 hover:bg-warm-50 rounded-lg transition-colors">
                     <FiSearch className="w-5 h-5 text-primary-500" />
                     <span className="text-gray-700">Search Activities</span>
