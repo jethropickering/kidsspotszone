@@ -80,7 +80,7 @@ export default function Header() {
               onMouseEnter={() => setMegaMenuOpen(true)}
               onMouseLeave={() => setMegaMenuOpen(false)}
             >
-              <button className="flex items-center gap-1 text-gray-700 hover:text-primary-600 font-medium">
+              <button className="flex items-center gap-1 text-gray-700 hover:text-primary-600 font-medium py-4">
                 Browse Activities
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -89,7 +89,8 @@ export default function Header() {
 
               {/* Mega Menu */}
               {megaMenuOpen && (
-                <div className="absolute left-0 top-full mt-2 w-screen max-w-4xl bg-white shadow-2xl rounded-2xl p-8 animate-fade-in">
+                <div className="absolute left-0 top-full pt-2 w-screen max-w-4xl animate-fade-in">
+                  <div className="bg-white shadow-2xl rounded-2xl p-8">
                   <div className="grid grid-cols-3 gap-8">
                     {/* Popular Categories */}
                     <div>
@@ -149,6 +150,7 @@ export default function Header() {
                         ))}
                       </ul>
                     </div>
+                  </div>
                   </div>
                 </div>
               )}
