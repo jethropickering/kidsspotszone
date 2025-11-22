@@ -29,6 +29,11 @@ import VenueOwnerDashboard from './pages/dashboard/VenueOwnerDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import VenueApprovalsPage from './pages/admin/VenueApprovalsPage';
 import FavoritesPage from './pages/dashboard/FavoritesPage';
+import SettingsPage from './pages/dashboard/SettingsPage';
+import MyReviewsPage from './pages/dashboard/MyReviewsPage';
+import AnalyticsPage from './pages/dashboard/AnalyticsPage';
+import AllReviewsPage from './pages/dashboard/AllReviewsPage';
+import PromotionPackagesPage from './pages/dashboard/PromotionPackagesPage';
 
 // Legal pages
 import PrivacyPage from './pages/legal/PrivacyPage';
@@ -80,11 +85,21 @@ function App() {
 
           {/* Dashboard routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>
+            {/* Parent Dashboard routes */}
             <Route index element={<ParentDashboard />} />
             <Route path="favorites" element={<FavoritesPage />} />
+            <Route path="reviews" element={<MyReviewsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+
+            {/* Venue Owner routes */}
             <Route path="venue" element={<VenueOwnerDashboard />} />
             <Route path="venue/add" element={<AddVenuePage />} />
             <Route path="venue/edit/:slug" element={<EditVenuePage />} />
+            <Route path="venue/analytics" element={<AnalyticsPage />} />
+            <Route path="venue/reviews" element={<AllReviewsPage />} />
+            <Route path="venue/promote" element={<PromotionPackagesPage />} />
+
+            {/* Admin routes */}
             <Route path="admin" element={<AdminDashboard />} />
             <Route path="admin/approvals" element={<VenueApprovalsPage />} />
           </Route>
