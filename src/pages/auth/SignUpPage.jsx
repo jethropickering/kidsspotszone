@@ -3,11 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiUser, FiCheck } from 'react-icons/fi';
 import { useAuthStore } from '../../store/authStore';
-import { authHelpers } from '../../services/supabase';
 
 export default function SignUpPage() {
   const navigate = useNavigate();
-  const { initialize } = useAuthStore();
+  const { initialize, signUp } = useAuthStore();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -80,7 +79,7 @@ export default function SignUpPage() {
     setError('');
     setLoading(true);
 
-    const { data, error: signUpError } = await authHelpers.signUp(
+    const { data, error: signUpError } = await signUp(
       formData.email,
       formData.password,
       {
