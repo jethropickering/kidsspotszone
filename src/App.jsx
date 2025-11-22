@@ -20,6 +20,7 @@ import StatePage from './pages/location/StatePage';
 import SignInPage from './pages/auth/SignInPage';
 import SignUpPage from './pages/auth/SignUpPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import AuthCallbackPage from './pages/auth/AuthCallbackPage';
 
 // Dashboard pages
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -75,6 +76,7 @@ function App() {
           <Route path="/signin" element={<SignInPage />} />
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
           {/* Dashboard routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>

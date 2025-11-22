@@ -100,7 +100,7 @@ export default function SignUpPage() {
       // Wait a moment, then initialize auth and redirect
       setTimeout(async () => {
         await initialize();
-        navigate(formData.role === 'venue_owner' ? '/dashboard/owner' : '/dashboard');
+        navigate(formData.role === 'venue_owner' ? '/dashboard/venue' : '/dashboard');
       }, 2000);
     }
   };
