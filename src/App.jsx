@@ -10,6 +10,7 @@ import Layout from './components/layout/Layout';
 import HomePage from './pages/home/HomePage';
 import SearchPage from './pages/search/SearchPage';
 import VenuePage from './pages/venue/VenuePage';
+import AddVenuePage from './pages/venue/AddVenuePage';
 import CategoryPage from './pages/category/CategoryPage';
 import CityPage from './pages/location/CityPage';
 import StatePage from './pages/location/StatePage';
@@ -76,6 +77,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<ParentDashboard />} />
             <Route path="venue" element={<VenueOwnerDashboard />} />
+            <Route path="venue/add" element={<AddVenuePage />} />
             <Route path="admin" element={<AdminDashboard />} />
           </Route>
         </Routes>

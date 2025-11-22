@@ -99,9 +99,9 @@ export default function VenueOwnerDashboard() {
                   <Link to="/search" className="btn-primary">
                     Find My Venue
                   </Link>
-                  <button className="btn-outline">
+                  <Link to="/dashboard/venue/add" className="btn-outline">
                     Create New Listing
-                  </button>
+                  </Link>
                 </div>
               </div>
 
@@ -109,10 +109,10 @@ export default function VenueOwnerDashboard() {
               <div className="card">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-display font-bold">My Venues</h2>
-                  <button className="btn-primary flex items-center gap-2">
+                  <Link to="/dashboard/venue/add" className="btn-primary flex items-center gap-2">
                     <FiPlus className="w-4 h-4" />
                     Add Venue
-                  </button>
+                  </Link>
                 </div>
                 <div className="text-center py-12">
                   <FiHome className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -124,9 +124,9 @@ export default function VenueOwnerDashboard() {
                     <Link to="/search" className="btn-outline">
                       Search for My Venue
                     </Link>
-                    <button className="btn-primary">
+                    <Link to="/dashboard/venue/add" className="btn-primary">
                       Create New Listing
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -159,10 +159,10 @@ export default function VenueOwnerDashboard() {
                     <FiPlus className="w-5 h-5 text-primary-500" />
                     <span className="text-gray-700">Create Offer</span>
                   </button>
-                  <button className="flex items-center gap-3 p-3 hover:bg-warm-50 rounded-lg transition-colors w-full text-left">
+                  <Link to="/dashboard/venue/add" className="flex items-center gap-3 p-3 hover:bg-warm-50 rounded-lg transition-colors w-full text-left">
                     <FiHome className="w-5 h-5 text-secondary-500" />
                     <span className="text-gray-700">Add Venue</span>
-                  </button>
+                  </Link>
                   <button className="flex items-center gap-3 p-3 hover:bg-warm-50 rounded-lg transition-colors w-full text-left">
                     <FiTrendingUp className="w-5 h-5 text-accent-500" />
                     <span className="text-gray-700">View Analytics</span>
