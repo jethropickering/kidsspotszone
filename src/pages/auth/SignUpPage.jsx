@@ -96,9 +96,15 @@ export default function SignUpPage() {
       setSuccess(true);
       setLoading(false);
 
-      // Wait a moment, then initialize auth and redirect
+      // Wait for profile to be created, then redirect
       setTimeout(async () => {
+        // Initialize auth to get user session
         await initialize();
+
+        // Wait a bit more for profile to be created
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Redirect based on role
         navigate(formData.role === 'venue_owner' ? '/dashboard/venue' : '/dashboard');
       }, 2000);
     }

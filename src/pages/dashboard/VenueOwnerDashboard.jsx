@@ -9,7 +9,7 @@ import StarRating from '../../components/common/StarRating';
 import OfferForm from '../../components/offers/OfferForm';
 
 export default function VenueOwnerDashboard() {
-  const { user, profile } = useAuthStore();
+  const { user, profile, loading: authLoading } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [venues, setVenues] = useState([]);
   const [stats, setStats] = useState({
@@ -25,11 +25,18 @@ export default function VenueOwnerDashboard() {
   const [editingOffer, setEditingOffer] = useState(null);
 
   useEffect(() => {
-    loadDashboardData();
-  }, [user]);
+    if (!authLoading && user) {
+      loadDashboardData();
+    } else if (!authLoading && !user) {
+      setLoading(false);
+    }
+  }, [user, authLoading]);
 
   const loadDashboardData = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
 
@@ -129,8 +136,12 @@ export default function VenueOwnerDashboard() {
     loadDashboardData(); // Reload data
   };
 
-  if (loading) {
-    return <LoadingSpinner />;
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-warm-50">
+        <LoadingSpinner text="Loading your dashboard..." />
+      </div>
+    );
   }
 
   return (
